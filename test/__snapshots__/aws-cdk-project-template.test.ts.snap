@@ -2,6 +2,34 @@
 
 exports[`SQS Queue and SNS Topic Created 1`] = `
 {
+  "Outputs": {
+    "TestApiGWEndpointF4D06F73": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "TestApiGWCCFF0419",
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region",
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix",
+            },
+            "/",
+            {
+              "Ref": "TestApiGWDeploymentStageprodA8C89AE5",
+            },
+            "/",
+          ],
+        ],
+      },
+    },
+  },
   "Parameters": {
     "BootstrapVersion": {
       "Default": "/cdk-bootstrap/hnb659fds/version",
@@ -10,52 +38,91 @@ exports[`SQS Queue and SNS Topic Created 1`] = `
     },
   },
   "Resources": {
-    "AwsCdkProjectTemplateQueue96EC2A4C": {
+    "DataBucketE3889A50": {
       "DeletionPolicy": "Delete",
-      "Properties": {
-        "VisibilityTimeout": 300,
-      },
-      "Type": "AWS::SQS::Queue",
+      "Type": "AWS::S3::Bucket",
       "UpdateReplacePolicy": "Delete",
     },
-    "AwsCdkProjectTemplateQueueMyTestStackAwsCdkProjectTemplateTopicFED9FDCC8B1D3C9F": {
+    "PutDynamoDBFuncBBDB9FF6": {
       "DependsOn": [
-        "AwsCdkProjectTemplateQueuePolicyB1E310F7",
+        "PutDynamoDBFuncServiceRoleDefaultPolicy6FA825A9",
+        "PutDynamoDBFuncServiceRoleE5CF858F",
       ],
       "Properties": {
-        "Endpoint": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
+          },
+          "S3Key": "c729cbeb39ebb898dd23d7165fcb21f497fb7edc2b3aaee907d4582d80a96fb2.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "BUCKET_NAME": {
+              "Ref": "DataBucketE3889A50",
+            },
+            "DYNAMODB_TABLE_NAME": {
+              "Ref": "TestTable5769773A",
+            },
+            "READ_DATA_KEY": "test.dat",
+          },
+        },
+        "Handler": "app.lambda_handler",
+        "Role": {
           "Fn::GetAtt": [
-            "AwsCdkProjectTemplateQueue96EC2A4C",
+            "PutDynamoDBFuncServiceRoleE5CF858F",
             "Arn",
           ],
         },
-        "Protocol": "sqs",
-        "TopicArn": {
-          "Ref": "AwsCdkProjectTemplateTopic340E5805",
-        },
+        "Runtime": "python3.11",
       },
-      "Type": "AWS::SNS::Subscription",
+      "Type": "AWS::Lambda::Function",
     },
-    "AwsCdkProjectTemplateQueuePolicyB1E310F7": {
+    "PutDynamoDBFuncServiceRoleDefaultPolicy6FA825A9": {
       "Properties": {
         "PolicyDocument": {
           "Statement": [
             {
-              "Action": "sqs:SendMessage",
-              "Condition": {
-                "ArnEquals": {
-                  "aws:SourceArn": {
-                    "Ref": "AwsCdkProjectTemplateTopic340E5805",
-                  },
-                },
-              },
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+              ],
               "Effect": "Allow",
-              "Principal": {
-                "Service": "sns.amazonaws.com",
-              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "DataBucketE3889A50",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "DataBucketE3889A50",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
               "Resource": {
                 "Fn::GetAtt": [
-                  "AwsCdkProjectTemplateQueue96EC2A4C",
+                  "TestTable5769773A",
                   "Arn",
                 ],
               },
@@ -63,16 +130,410 @@ exports[`SQS Queue and SNS Topic Created 1`] = `
           ],
           "Version": "2012-10-17",
         },
-        "Queues": [
+        "PolicyName": "PutDynamoDBFuncServiceRoleDefaultPolicy6FA825A9",
+        "Roles": [
           {
-            "Ref": "AwsCdkProjectTemplateQueue96EC2A4C",
+            "Ref": "PutDynamoDBFuncServiceRoleE5CF858F",
           },
         ],
       },
-      "Type": "AWS::SQS::QueuePolicy",
+      "Type": "AWS::IAM::Policy",
     },
-    "AwsCdkProjectTemplateTopic340E5805": {
-      "Type": "AWS::SNS::Topic",
+    "PutDynamoDBFuncServiceRoleE5CF858F": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TestApiGWANY995C1B50": {
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region",
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "PutDynamoDBFuncBBDB9FF6",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Fn::GetAtt": [
+            "TestApiGWCCFF0419",
+            "RootResourceId",
+          ],
+        },
+        "RestApiId": {
+          "Ref": "TestApiGWCCFF0419",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "TestApiGWANYApiPermissionMyTestStackTestApiGWE7A9DD0FANY3401FBB2": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PutDynamoDBFuncBBDB9FF6",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "TestApiGWCCFF0419",
+              },
+              "/",
+              {
+                "Ref": "TestApiGWDeploymentStageprodA8C89AE5",
+              },
+              "/*/",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "TestApiGWANYApiPermissionTestMyTestStackTestApiGWE7A9DD0FANYBB86768D": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PutDynamoDBFuncBBDB9FF6",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "TestApiGWCCFF0419",
+              },
+              "/test-invoke-stage/*/",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "TestApiGWAccount3E2193CA": {
+      "DeletionPolicy": "Retain",
+      "DependsOn": [
+        "TestApiGWCCFF0419",
+      ],
+      "Properties": {
+        "CloudWatchRoleArn": {
+          "Fn::GetAtt": [
+            "TestApiGWCloudWatchRoleCD69FEED",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::ApiGateway::Account",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "TestApiGWCCFF0419": {
+      "Properties": {
+        "Name": "TestApiGW",
+      },
+      "Type": "AWS::ApiGateway::RestApi",
+    },
+    "TestApiGWCloudWatchRoleCD69FEED": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "apigateway.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "TestApiGWDeployment7DD9E97D4a6b1ed46df42a7cf1389190b8b550ad": {
+      "DependsOn": [
+        "TestApiGWproxyANY2493FA97",
+        "TestApiGWproxy916DB0DF",
+        "TestApiGWANY995C1B50",
+      ],
+      "Properties": {
+        "Description": "Automatically created by the RestApi construct",
+        "RestApiId": {
+          "Ref": "TestApiGWCCFF0419",
+        },
+      },
+      "Type": "AWS::ApiGateway::Deployment",
+    },
+    "TestApiGWDeploymentStageprodA8C89AE5": {
+      "DependsOn": [
+        "TestApiGWAccount3E2193CA",
+      ],
+      "Properties": {
+        "DeploymentId": {
+          "Ref": "TestApiGWDeployment7DD9E97D4a6b1ed46df42a7cf1389190b8b550ad",
+        },
+        "RestApiId": {
+          "Ref": "TestApiGWCCFF0419",
+        },
+        "StageName": "prod",
+      },
+      "Type": "AWS::ApiGateway::Stage",
+    },
+    "TestApiGWproxy916DB0DF": {
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "TestApiGWCCFF0419",
+            "RootResourceId",
+          ],
+        },
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "TestApiGWCCFF0419",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "TestApiGWproxyANY2493FA97": {
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region",
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "PutDynamoDBFuncBBDB9FF6",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "TestApiGWproxy916DB0DF",
+        },
+        "RestApiId": {
+          "Ref": "TestApiGWCCFF0419",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "TestApiGWproxyANYApiPermissionMyTestStackTestApiGWE7A9DD0FANYproxy09734985": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PutDynamoDBFuncBBDB9FF6",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "TestApiGWCCFF0419",
+              },
+              "/",
+              {
+                "Ref": "TestApiGWDeploymentStageprodA8C89AE5",
+              },
+              "/*/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "TestApiGWproxyANYApiPermissionTestMyTestStackTestApiGWE7A9DD0FANYproxyC338638C": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PutDynamoDBFuncBBDB9FF6",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "TestApiGWCCFF0419",
+              },
+              "/test-invoke-stage/*/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "TestTable5769773A": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "MainTestKey",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "MainTestKey",
+            "KeyType": "HASH",
+          },
+        ],
+        "Replicas": [
+          {
+            "Region": {
+              "Ref": "AWS::Region",
+            },
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::GlobalTable",
+      "UpdateReplacePolicy": "Retain",
     },
   },
   "Rules": {
