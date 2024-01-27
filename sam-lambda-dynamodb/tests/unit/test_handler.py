@@ -2,6 +2,11 @@ import json
 
 import pytest
 
+import os
+from moto import mock_s3,mock_dynamodb
+import boto3
+import csv
+
 from hello_world import app
 
 
@@ -61,12 +66,93 @@ def apigw_event():
         "path": "/examplepath",
     }
 
+TEST_BUCKET_NAME = "example-bucket"
+DYNAMODB_TABLE_NAME = "example-table"
+READ_DATA_KEY = "test.dat"
+TEST_REGION = "ap-northeast-1"
 
-def test_lambda_handler(apigw_event):
+@pytest.fixture(autouse=True)
+def mock_env():
+    os.environ["BUCKET_NAME"] = TEST_BUCKET_NAME
+    os.environ["DYNAMODB_TABLE_NAME"] = DYNAMODB_TABLE_NAME
+    os.environ["READ_DATA_KEY"] = READ_DATA_KEY
+
+@pytest.fixture(scope="function")
+def aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_DEFAULT_REGION"] = TEST_REGION
+
+@pytest.fixture(scope="function")
+def setup_s3(aws_credentials):
+    mocks3 = mock_s3()
+    mocks3.start()
+    s3client = boto3.client("s3")
+    s3client.create_bucket(Bucket=TEST_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": TEST_REGION})
+    s3client.upload_file(f"{os.path.dirname(__file__)}/test.dat", TEST_BUCKET_NAME, READ_DATA_KEY)
+    yield
+    mocks3.stop()
+
+@pytest.fixture(scope="function")
+def setup_s3_failed(aws_credentials):
+    mocks3 = mock_s3()
+    mocks3.start()
+    s3client = boto3.client("s3")
+    s3client.create_bucket(Bucket=TEST_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": TEST_REGION})
+    s3client.upload_file(f"{os.path.dirname(__file__)}/test.dat", TEST_BUCKET_NAME, f"{READ_DATA_KEY}2")
+    yield
+    mocks3.stop()
+
+@pytest.fixture(scope="function")
+def setup_dynamodb(aws_credentials):
+    mockdynamodb = mock_dynamodb()
+    mockdynamodb.start()
+    dynamodb = boto3.client("dynamodb")
+    dynamodb.create_table(
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'MainTestKey',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'SubTestKey',
+                'AttributeType': 'S'
+            },
+        ],
+        TableName="example-table",
+        KeySchema=[
+            {
+                'AttributeName': 'MainTestKey',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'SubTestKey',
+                'KeyType': 'HASH'
+            },
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    yield
+    mockdynamodb.stop()
+
+def test_lambda_handler_success(apigw_event,setup_s3,setup_dynamodb):
 
     ret = app.lambda_handler(apigw_event, "")
     data = json.loads(ret["body"])
 
     assert ret["statusCode"] == 200
     assert "message" in ret["body"]
-    assert data["message"] == "hello world"
+    assert data["message"] == "Success!"
+
+def test_lambda_handler_failed(apigw_event,setup_s3_failed,setup_dynamodb):
+    """ S3 読み込むS3のデータがない(test/key2)場合にfailed
+    """
+    ret = app.lambda_handler(apigw_event, "")
+    data = json.loads(ret["body"])
+
+    assert ret["statusCode"] == 404
+    assert "message" in ret["body"]
+    assert data["message"] == "Failed!"
