@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
 {
-	"name": "Node.js & TypeScript",
+	"name": "AWS CDK & SAM & LocalStack",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"build": {
 		"dockerfile": "Dockerfile"
@@ -12,6 +12,7 @@
 	"runArgs": ["--platform=linux/amd64"],
 	"features": {
 		"ghcr.io/devcontainers/features/aws-cli:1": {},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
 		"ghcr.io/devcontainers-contrib/features/amplify-cli:2": {},
 		"ghcr.io/devcontainers-contrib/features/aws-cdk:2": {},
 		"ghcr.io/devcontainers-contrib/features/aws-eb-cli:1": {},
