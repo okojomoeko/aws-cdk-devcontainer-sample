@@ -3,7 +3,7 @@ import json
 import pytest
 
 import os
-from moto import mock_s3,mock_dynamodb
+from moto import mock_aws
 import boto3
 import csv
 
@@ -88,55 +88,52 @@ def aws_credentials():
 
 @pytest.fixture(scope="function")
 def setup_s3(aws_credentials):
-    mocks3 = mock_s3()
-    mocks3.start()
-    s3client = boto3.client("s3")
-    s3client.create_bucket(Bucket=TEST_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": TEST_REGION})
-    s3client.upload_file(f"{os.path.dirname(__file__)}/test.dat", TEST_BUCKET_NAME, READ_DATA_KEY)
-    yield
-    mocks3.stop()
+    with mock_aws():
+        s3client = boto3.client("s3")
+        s3client.create_bucket(Bucket=TEST_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": TEST_REGION})
+        s3client.upload_file(f"{os.path.dirname(__file__)}/test.dat", TEST_BUCKET_NAME, READ_DATA_KEY)
+        yield
+
 
 @pytest.fixture(scope="function")
 def setup_s3_failed(aws_credentials):
-    mocks3 = mock_s3()
-    mocks3.start()
-    s3client = boto3.client("s3")
-    s3client.create_bucket(Bucket=TEST_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": TEST_REGION})
-    s3client.upload_file(f"{os.path.dirname(__file__)}/test.dat", TEST_BUCKET_NAME, f"{READ_DATA_KEY}2")
-    yield
-    mocks3.stop()
+    with mock_aws():
+        s3client = boto3.client("s3")
+        s3client.create_bucket(Bucket=TEST_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": TEST_REGION})
+        s3client.upload_file(f"{os.path.dirname(__file__)}/test.dat", TEST_BUCKET_NAME, f"{READ_DATA_KEY}2")
+        yield
+
 
 @pytest.fixture(scope="function")
 def setup_dynamodb(aws_credentials):
-    mockdynamodb = mock_dynamodb()
-    mockdynamodb.start()
-    dynamodb = boto3.client("dynamodb")
-    dynamodb.create_table(
-        AttributeDefinitions=[
-            {
-                'AttributeName': 'MainTestKey',
-                'AttributeType': 'S'
-            },
-            {
-                'AttributeName': 'SubTestKey',
-                'AttributeType': 'S'
-            },
-        ],
-        TableName="example-table",
-        KeySchema=[
-            {
-                'AttributeName': 'MainTestKey',
-                'KeyType': 'HASH'
-            },
-            {
-                'AttributeName': 'SubTestKey',
-                'KeyType': 'HASH'
-            },
-        ],
-        BillingMode="PAY_PER_REQUEST",
-    )
-    yield
-    mockdynamodb.stop()
+    with mock_aws():
+        dynamodb = boto3.client("dynamodb")
+        dynamodb.create_table(
+            AttributeDefinitions=[
+                {
+                    'AttributeName': 'MainTestKey',
+                    'AttributeType': 'S'
+                },
+                {
+                    'AttributeName': 'SubTestKey',
+                    'AttributeType': 'S'
+                },
+            ],
+            TableName="example-table",
+            KeySchema=[
+                {
+                    'AttributeName': 'MainTestKey',
+                    'KeyType': 'HASH'
+                },
+                {
+                    'AttributeName': 'SubTestKey',
+                    'KeyType': 'HASH'
+                },
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        yield
+
 
 def test_lambda_handler_success(apigw_event,setup_s3,setup_dynamodb):
 
