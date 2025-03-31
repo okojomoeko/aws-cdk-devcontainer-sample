@@ -1,4 +1,9 @@
-import { RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
+import {
+  BundlingFileAccess,
+  RemovalPolicy,
+  Stack,
+  StackProps,
+} from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -19,6 +24,10 @@ export class AwsCdkProjectTemplateStack extends Stack {
       runtime: lambda.Runtime.PYTHON_3_11,
       index: 'app.py',
       handler: 'lambda_handler',
+      // DooD の場合
+      bundling: {
+        bundlingFileAccess: BundlingFileAccess.VOLUME_COPY,
+      },
     });
 
     bucket.grantRead(putDynamoDBFunc);

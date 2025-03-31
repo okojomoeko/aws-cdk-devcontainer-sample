@@ -1,46 +1,16 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
 {
-  "name": "AWS CDK & SAM & LocalStack",
-  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
-  "remoteEnv": {
-    // Activate LocalStack Pro: https://docs.localstack.cloud/getting-started/auth-token/
-    // "LOCALSTACK_AUTH_TOKEN": "${localEnv:LOCALSTACK_AUTH_TOKEN}", // required for Pro, not processed via template due to security reasons
-    // "LOCALSTACK_API_KEY": "${localEnv:LOCALSTACK_API_KEY}",
-    // LocalStack configuration: https://docs.localstack.cloud/references/configuration/
-    "ACTIVATE_PRO": false,
-    // "DEBUG": true,
-    // "LS_LOG": "debug",
-    "PERSISTENCE": false,
-    // "AWS_ENDPOINT_URL": "http://localhost.localstack.cloud:4566",
-    // "AUTO_LOAD_POD": " ",
-    // "ENFORCE_IAM": false,
-    "AWS_REGION": "ap-northeast-1",
-    "AWS_DEFAULT_REGION": "ap-northeast-1",
-    "IMAGE_NAME": "localstack/localstack:latest",
-    "LOCALSTACK_VOLUME_DIR": "/data"
-  },
-
-  "mounts": [
-    {
-      "source": "${localEnv:HOME}/.aws",
-      "target": "/home/node/.aws",
-      "type": "bind"
-    },
-    {
-      // to persist build data and images
-      "source": "dind-var-lib-docker",
-      "target": "/var/lib/docker",
-      "type": "volume"
-    },
-    "source=./.volume,target=/data,type=bind,consistency=cached"
+	"name": "LocalStack DooD setup",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "mounts": [
+    {"source": "${localEnv:HOME}/.aws", "target": "/home/node/.aws","type": "bind"}
   ],
   "runArgs": ["--platform=linux/arm64"],
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+
+	// 👇 Features to add to the Dev Container. More info: https://containers.dev/implementors/features.
+	"features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     "ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {},
     "ghcr.io/devcontainers/features/aws-cli:1": {},
     "ghcr.io/devcontainers-contrib/features/amplify-cli:2": {},
@@ -51,9 +21,9 @@
       "version": "latest",
       "awslocal": true, // if true, add in features manually: ghcr.io/devcontainers/features/aws-cli
       "cdklocal": true, // if true, add in features manually: ghcr.io/devcontainers-contrib/features/aws-cdk
-      "pulumilocal": true, // if true, add in features manually: ghcr.io/devcontainers-contrib/features/pulumi
+      "pulumilocal": false, // if true, add in features manually: ghcr.io/devcontainers-contrib/features/pulumi
       "samlocal": true, // if true, add in features manually: ghcr.io/customink/codespaces-features/sam-cli
-      "tflocal": true // if true, add in features manually: ghcr.io/devcontainers-contrib/features/terraform-asdf
+      "tflocal": false // if true, add in features manually: ghcr.io/devcontainers-contrib/features/terraform-asdf
     }
   },
 

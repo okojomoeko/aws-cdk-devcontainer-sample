@@ -7,7 +7,6 @@ from moto import mock_aws
 import boto3
 import csv
 
-from hello_world import app
 
 
 @pytest.fixture()
@@ -85,11 +84,13 @@ def aws_credentials():
     os.environ["AWS_SECURITY_TOKEN"] = "testing"
     os.environ["AWS_SESSION_TOKEN"] = "testing"
     os.environ["AWS_DEFAULT_REGION"] = TEST_REGION
+    os.environ["AWS_ENDPOINT_URL"] = ""
+
 
 @pytest.fixture(scope="function")
 def setup_s3(aws_credentials):
     with mock_aws():
-        s3client = boto3.client("s3")
+        s3client = boto3.client("s3", region_name=TEST_REGION)
         s3client.create_bucket(Bucket=TEST_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": TEST_REGION})
         s3client.upload_file(f"{os.path.dirname(__file__)}/test.dat", TEST_BUCKET_NAME, READ_DATA_KEY)
         yield
@@ -98,7 +99,7 @@ def setup_s3(aws_credentials):
 @pytest.fixture(scope="function")
 def setup_s3_failed(aws_credentials):
     with mock_aws():
-        s3client = boto3.client("s3")
+        s3client = boto3.client("s3", region_name=TEST_REGION)
         s3client.create_bucket(Bucket=TEST_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": TEST_REGION})
         s3client.upload_file(f"{os.path.dirname(__file__)}/test.dat", TEST_BUCKET_NAME, f"{READ_DATA_KEY}2")
         yield
@@ -107,7 +108,7 @@ def setup_s3_failed(aws_credentials):
 @pytest.fixture(scope="function")
 def setup_dynamodb(aws_credentials):
     with mock_aws():
-        dynamodb = boto3.client("dynamodb")
+        dynamodb = boto3.client("dynamodb", region_name=TEST_REGION)
         dynamodb.create_table(
             AttributeDefinitions=[
                 {
@@ -119,7 +120,7 @@ def setup_dynamodb(aws_credentials):
                     'AttributeType': 'S'
                 },
             ],
-            TableName="example-table",
+            TableName=DYNAMODB_TABLE_NAME,
             KeySchema=[
                 {
                     'AttributeName': 'MainTestKey',
@@ -127,7 +128,7 @@ def setup_dynamodb(aws_credentials):
                 },
                 {
                     'AttributeName': 'SubTestKey',
-                    'KeyType': 'HASH'
+                    'KeyType': 'RANGE'
                 },
             ],
             BillingMode="PAY_PER_REQUEST",
@@ -136,6 +137,8 @@ def setup_dynamodb(aws_credentials):
 
 
 def test_lambda_handler_success(apigw_event,setup_s3,setup_dynamodb):
+
+    from hello_world import app
 
     ret = app.lambda_handler(apigw_event, "")
     data = json.loads(ret["body"])
@@ -147,6 +150,8 @@ def test_lambda_handler_success(apigw_event,setup_s3,setup_dynamodb):
 def test_lambda_handler_failed(apigw_event,setup_s3_failed,setup_dynamodb):
     """ S3 読み込むS3のデータがない(test/key2)場合にfailed
     """
+    from hello_world import app
+
     ret = app.lambda_handler(apigw_event, "")
     data = json.loads(ret["body"])
 
