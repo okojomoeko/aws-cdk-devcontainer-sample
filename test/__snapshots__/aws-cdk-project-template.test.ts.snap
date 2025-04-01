@@ -53,7 +53,7 @@ exports[`SQS Queue and SNS Topic Created 1`] = `
           "S3Bucket": {
             "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
           },
-          "S3Key": "08865b0875f0d117f51b415e654fefe87a0f3fc5b1d73e94f1d0d24daaf75342.zip",
+          "S3Key": "db01b64be96c584d3bc3baa01d932bad7284b52195f9bec6038654a43da81e09.zip",
         },
         "Environment": {
           "Variables": {
